@@ -4,6 +4,8 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Hexagram from '@/components/Hexagram';
 import ShareCard from '@/components/ShareCard';
+import CoinToss from '@/components/CoinToss';
+import { useDivineSound } from '@/lib/useDivineSound';
 import { trigramsToHexagram } from '@/lib/iching/constants';
 import type { DivineResponse, DimensionKey } from '@/lib/iching/types';
 
@@ -18,13 +20,16 @@ const DIMENSIONS: { key: DimensionKey; label: string; icon: string }[] = [
 
 export default function Home() {
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<DivineResponse | null>(null);
   const [activeDim, setActiveDim] = useState<DimensionKey | null>(null);
   const [oracleText, setOracleText] = useState('');
   const [showResult, setShowResult] = useState(false);
   const [showShare, setShowShare] = useState(false);
+  const [tossing, setTossing] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pendingResult = useRef<DivineResponse | null>(null);
+
+  const sound = useDivineSound();
 
   // 打字机效果
   useEffect(() => {
@@ -41,13 +46,18 @@ export default function Home() {
   }, [result]);
 
   const handleDivine = useCallback(async () => {
-    setLoading(true);
     setResult(null);
     setActiveDim(null);
     setShowResult(false);
+    pendingResult.current = null;
 
-    await new Promise((r) => setTimeout(r, 600));
+    // 初始化音效（用户交互后才能激活 AudioContext）
+    await sound.ensureLoaded();
 
+    // 启动摇卦动画
+    setTossing(true);
+
+    // 同时后台请求 API（动画播放期间完成）
     try {
       const res = await fetch('/api/divine', {
         method: 'POST',
@@ -55,12 +65,21 @@ export default function Home() {
         body: JSON.stringify({ input }),
       });
       const data = await res.json();
+      pendingResult.current = data;
+    } catch {
+      pendingResult.current = null;
+    }
+  }, [input, sound]);
+
+  // 摇卦动画结束 → 显示结果
+  const handleTossComplete = useCallback(() => {
+    setTossing(false);
+    const data = pendingResult.current;
+    if (data) {
       setResult(data);
       setTimeout(() => setShowResult(true), 100);
-    } finally {
-      setLoading(false);
     }
-  }, [input]);
+  }, []);
 
   const handleReset = useCallback(() => {
     setResult(null);
@@ -136,9 +155,9 @@ export default function Home() {
               <button
                 className="btn-primary"
                 onClick={handleDivine}
-                disabled={loading}
+                disabled={tossing}
               >
-                {loading ? '占卦中...' : '问 春 风'}
+                {tossing ? '占卦中...' : '问 春 风'}
               </button>
 
               <p className="text-ink-pale text-xs text-center font-body max-w-xs opacity-60">
@@ -436,43 +455,6 @@ export default function Home() {
             </motion.div>
           )}
         </AnimatePresence>
-
-        {/* loading 状态 */}
-        {loading && !result && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col items-center gap-4 mt-8"
-          >
-            <div className="relative w-28 h-28 flex items-center justify-center">
-              {/* 墨晕扩散动画 */}
-              <motion.div
-                className="absolute inset-0 rounded-full bg-ink/[0.07]"
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.5, 2] }}
-                transition={{
-                  duration: 1.8,
-                  repeat: Infinity,
-                  ease: 'easeOut',
-                }}
-              />
-              <motion.div
-                className="absolute inset-0 rounded-full bg-ink/[0.05]"
-                initial={{ scale: 0 }}
-                animate={{ scale: [0, 1.5, 2] }}
-                transition={{
-                  duration: 1.8,
-                  delay: 0.6,
-                  repeat: Infinity,
-                  ease: 'easeOut',
-                }}
-              />
-              <p className="relative text-ink-pale font-body text-sm tracking-[0.3em]">
-                起卦中
-              </p>
-            </div>
-          </motion.div>
-        )}
       </div>
 
       {/* 底部墨晕装饰 */}
@@ -487,6 +469,22 @@ export default function Home() {
           <ShareCard result={result} onClose={() => setShowShare(false)} />
         )}
       </AnimatePresence>
+
+      {/* 摇卦动画 */}
+      <CoinToss
+        active={tossing}
+        onComplete={handleTossComplete}
+        muted={sound.muted}
+        onToggleMute={sound.toggleMute}
+        onShakeStart={sound.playShakeSequence}
+        onDropStart={() => {
+          sound.playFile('drop', { volume: 0.8 });
+          sound.playClink(0.05, 1800);
+          sound.playClink(0.18, 2100);
+          sound.playClink(0.3, 1600);
+        }}
+        onBellStart={() => sound.playFile('bell', { volume: 0.4 })}
+      />
     </main>
   );
 }
