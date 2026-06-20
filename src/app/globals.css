@@ -1,0 +1,260 @@
+@import "tailwindcss";
+
+/* ====================== 水墨主题 ====================== */
+:root {
+  --paper: #faf6ed;
+  --paper-dark: #f0e8d8;
+  --paper-deep: #e5dcc7;
+  --ink: #1c1c1c;
+  --ink-light: #4a4a4a;
+  --ink-pale: #808080;
+  --vermilion: #c43b2d;
+  --vermilion-dark: #8e2a22;
+  --vermilion-light: #e57373;
+  --gold: #b8860b;
+  --bamboo: #5a7247;
+}
+
+.bg-ink { background-color: var(--ink); }
+.bg-paper { background-color: var(--paper); }
+.bg-vermilion { background-color: var(--vermilion); }
+.bg-bamboo { background-color: var(--bamboo); }
+.bg-ink-pale { background-color: var(--ink-pale); }
+.text-ink { color: var(--ink); }
+.text-ink-pale { color: var(--ink-pale); }
+.text-ink-light { color: var(--ink-light); }
+.text-vermilion { color: var(--vermilion); }
+.text-paper { color: var(--paper); }
+.text-bamboo { color: var(--bamboo); }
+.border-ink { border-color: var(--ink); }
+.border-ink\/10 { border-color: rgba(28,28,28,0.1); }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", "Source Han Serif SC", serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* ====================== 宣纸纹理背景 ====================== */
+.paper-bg {
+  position: relative;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--paper);
+  background-image:
+    radial-gradient(ellipse at top left, rgba(196, 59, 45, 0.02), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(0, 0, 0, 0.03), transparent 50%);
+}
+
+.paper-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+  mix-blend-mode: multiply;
+}
+
+/* ====================== 书法字体 ====================== */
+.font-brush {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}
+
+.font-title {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.font-body {
+  font-family: "Noto Serif SC", "Songti SC", "STSong", "Source Han Serif SC", serif;
+  line-height: 1.9;
+  letter-spacing: 0.02em;
+}
+
+/* ====================== 朱印 ====================== */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--vermilion);
+  color: var(--paper);
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-weight: 700;
+  padding: 0.25em 0.5em;
+  letter-spacing: 0.1em;
+  border-radius: 2px;
+  transform: rotate(-2deg);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+/* ====================== 爻 ====================== */
+.yao-yang {
+  position: relative;
+  height: 12px;
+  width: 100%;
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.yao-yin {
+  position: relative;
+  height: 12px;
+  width: 100%;
+}
+
+.yao-yin::before,
+.yao-yin::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  height: 12px;
+  width: calc(50% - 6px);
+  background: var(--ink);
+  border-radius: 1px;
+}
+
+.yao-yin::before { left: 0; }
+.yao-yin::after { right: 0; }
+
+/* 动爻高亮 */
+.yao-active.yao-yang {
+  background: var(--vermilion);
+  box-shadow: 0 0 12px rgba(196, 59, 45, 0.5);
+}
+
+.yao-active.yao-yin::before,
+.yao-active.yao-yin::after {
+  background: var(--vermilion);
+  box-shadow: 0 0 12px rgba(196, 59, 45, 0.5);
+}
+
+/* ====================== 墨晕 ====================== */
+.ink-spread {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(28,28,28,0.08) 0%, rgba(28,28,28,0.02) 40%, transparent 70%);
+  filter: blur(20px);
+  pointer-events: none;
+}
+
+/* ====================== 按钮 ====================== */
+.btn-primary {
+  background: var(--ink);
+  color: var(--paper);
+  padding: 14px 40px;
+  border: none;
+  font-family: "Noto Serif SC", "Songti SC", serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.3em;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background: var(--vermilion);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(196, 59, 45, 0.3);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ====================== 维度按钮 ====================== */
+.dim-btn {
+  background: transparent;
+  border: 1px solid var(--ink);
+  color: var(--ink);
+  padding: 10px 20px;
+  font-family: "Noto Serif SC", serif;
+  font-size: 0.95rem;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.dim-btn:hover {
+  background: var(--ink);
+  color: var(--paper);
+}
+
+.dim-btn.active {
+  background: var(--vermilion);
+  border-color: var(--vermilion);
+  color: var(--paper);
+}
+
+/* ====================== 输入框 ====================== */
+.input-field {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--ink-pale);
+  color: var(--ink);
+  font-family: "Noto Serif SC", serif;
+  font-size: 1.1rem;
+  letter-spacing: 0.1em;
+  padding: 10px 0;
+  text-align: center;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.3s ease;
+}
+
+.input-field:focus {
+  border-bottom-color: var(--vermilion);
+}
+
+.input-field::placeholder {
+  color: var(--ink-pale);
+  opacity: 0.5;
+  font-size: 0.9rem;
+}
+
+/* ====================== 滚动条 ====================== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--paper);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--paper-deep);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-pale);
+}
+
+/* ====================== 分享卡样式 ====================== */
+.share-card {
+  width: 375px;
+  padding: 40px 30px;
+  background: var(--paper);
+  color: var(--ink);
+  position: relative;
+}
+
+.share-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.4;
+}
