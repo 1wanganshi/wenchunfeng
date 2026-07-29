@@ -21,6 +21,36 @@ export interface CastResult {
   source: 'user' | 'time'; // 起卦来源
 }
 
+// 互卦（本卦三、四、五爻为上互，二、三、四爻为下互），代表中间过程
+export interface MutualTrigrams {
+  upper: TrigramIndex; // 上互卦序号
+  lower: TrigramIndex; // 下互卦序号
+}
+
+// 体用生克关系
+export type TiYongRelation =
+  | 'yong-sheng-ti' // 用生体：大吉
+  | 'ti-ke-yong'    // 体克用：小吉
+  | 'bi-he'         // 比和：吉
+  | 'ti-sheng-yong' // 体生用：耗
+  | 'yong-ke-ti';   // 用克体：大凶
+
+export type FiveElement = 'metal' | 'wood' | 'water' | 'fire' | 'earth';
+
+// 体用分析结果（附加在 API 响应里）
+export interface TiYongAnalysis {
+  mutual: MutualTrigrams;         // 互卦
+  ti: TrigramIndex;               // 体卦序号
+  yong: TrigramIndex;             // 用卦序号
+  tiElement: FiveElement;         // 体卦五行
+  yongElement: FiveElement;       // 用卦五行
+  relation: TiYongRelation;       // 体用生克关系
+  relationLabel: string;          // 如"用生体"
+  relationFortune: 'great-good' | 'good' | 'neutral' | 'bad'; // 吉凶档
+  relationFortuneLabel: string;   // "大吉" / "小吉" / "吉" / "耗" / "大凶"
+  relationAdvice: string;         // 断语
+}
+
 // 一个维度的解读
 export interface DimensionReading {
   key: DimensionKey;
@@ -60,6 +90,7 @@ export interface DivineResponse {
   movingYaoPlain: string;  // 动爻爻辞白话翻译
   movingYaoFortune: YaoFortune;  // 动爻吉凶判定
   movingYaoAdvice: string; // 动爻行动建议
+  tiyong: TiYongAnalysis;  // 体用分析（互卦、生克、吉凶）
 }
 
 // 吉凶等级

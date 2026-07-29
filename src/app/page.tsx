@@ -7,6 +7,7 @@ import ShareCard from '@/components/ShareCard';
 import CoinToss from '@/components/CoinToss';
 import { useDivineSound } from '@/lib/useDivineSound';
 import { trigramsToHexagram } from '@/lib/iching/constants';
+import { plainTiYong } from '@/lib/iching/tiyong';
 import type { DivineResponse, DimensionKey } from '@/lib/iching/types';
 
 const DIMENSIONS: { key: DimensionKey; label: string; icon: string }[] = [
@@ -97,6 +98,18 @@ export default function Home() {
   const changedLines = result
     ? (trigramsToHexagram(result.changed.upperTrigram, result.changed.lowerTrigram) as (0 | 1)[])
     : ([0, 0, 0, 0, 0, 0] as (0 | 1)[]);
+
+  // 体用生克的大白话解读
+  const tiyongPlain = result
+    ? plainTiYong(
+        result.cast.upper,
+        result.cast.lower,
+        result.cast.movingLine,
+        // 体卦名/用卦名：从卦序反查八卦名
+        (['乾','兑','离','震','巽','坎','艮','坤'] as const)[result.tiyong.ti - 1],
+        (['乾','兑','离','震','巽','坎','艮','坤'] as const)[result.tiyong.yong - 1]
+      )
+    : null;
 
   return (
     <main className="paper-bg min-h-screen w-full relative overflow-hidden">
@@ -378,6 +391,51 @@ export default function Home() {
                   </motion.div>
                 );
               })()}
+
+              {/* 卦象深读：体用生克的大白话 */}
+              {tiyongPlain && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.55, duration: 0.5 }}
+                  className="w-full px-5 py-4 bg-white/20 backdrop-blur-sm border border-ink/8 rounded-sm"
+                >
+                  <p className="text-center text-ink-pale text-[11px] mb-3 tracking-[0.2em]">
+                    卦 象 深 读
+                  </p>
+
+                  {/* 一句话点题 */}
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <span
+                      className={`inline-block w-2 h-2 rounded-full ${
+                        tiyongPlain.mood === 'good'
+                          ? 'bg-bamboo'
+                          : tiyongPlain.mood === 'bad'
+                          ? 'bg-vermilion'
+                          : 'bg-ink-pale'
+                      }`}
+                    />
+                    <p className="font-title text-lg text-ink text-center">
+                      {tiyongPlain.headline}
+                    </p>
+                  </div>
+
+                  {/* 展开解释 */}
+                  <p className="font-body text-ink-light text-sm leading-relaxed text-center mb-2">
+                    {tiyongPlain.detail}
+                  </p>
+
+                  {/* 中间过程 */}
+                  <p className="font-body text-ink-pale text-xs leading-relaxed text-center">
+                    {tiyongPlain.process}
+                  </p>
+
+                  {/* 术语小注（可折叠的轻提示） */}
+                  <p className="text-center text-ink-pale/60 text-[10px] mt-3 tracking-wider font-body">
+                    体卦={(['乾','兑','离','震','巽','坎','艮','坤'] as const)[result!.tiyong.ti - 1]}（你） · 用卦={(['乾','兑','离','震','巽','坎','艮','坤'] as const)[result!.tiyong.yong - 1]}（事） · {result!.tiyong.relationLabel}
+                  </p>
+                </motion.div>
+              )}
 
               {/* 六个维度按钮 */}
               <motion.div

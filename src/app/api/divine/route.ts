@@ -3,7 +3,8 @@ import { castFromNumbers, parseInput } from '@/lib/iching/cast';
 import { getHexagram } from '@/lib/iching/hexagrams';
 import { judgeYao } from '@/lib/iching/yao_fortune';
 import { YAO_PLAIN } from '@/lib/iching/yao_plain';
-import type { DivineResponse, YaoFortune } from '@/lib/iching/types';
+import { analyzeTiYong } from '@/lib/iching/tiyong';
+import type { DivineResponse, YaoFortune, TiYongAnalysis } from '@/lib/iching/types';
 
 const FORTUNE_LABEL: Record<YaoFortune, string> = {
   'great-good': '大吉',
@@ -57,6 +58,21 @@ export async function POST(request: NextRequest) {
     movingYaoPlain,
     movingYaoFortune: fortune,
     movingYaoAdvice: FORTUNE_ADVICE[fortune],
+    tiyong: ((): TiYongAnalysis => {
+      const a = analyzeTiYong(cast.upper, cast.lower, cast.movingLine);
+      return {
+        mutual: a.mutual,
+        ti: a.ti,
+        yong: a.yong,
+        tiElement: a.tiElement,
+        yongElement: a.yongElement,
+        relation: a.relation.relation,
+        relationLabel: a.relation.label,
+        relationFortune: a.relation.fortune,
+        relationFortuneLabel: a.relation.fortuneLabel,
+        relationAdvice: a.relation.advice,
+      };
+    })(),
   };
 
   return Response.json(result);
