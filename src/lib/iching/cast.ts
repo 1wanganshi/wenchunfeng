@@ -5,6 +5,7 @@ import {
   hexagramToTrigrams,
   flipYao,
 } from './constants';
+import { Lunar } from 'lunar-javascript';
 
 /**
  * 梅花易数·三数起卦法
@@ -52,20 +53,38 @@ export function castFromNumbers(nums: number[]): CastResult {
 }
 
 /**
- * 时辰起卦：用当前时间作为输入
- *  - 农历换算太重，简化为：用月份、日期、小时凑数
- *  - 这样在不同时间起卦结果不同，有玄学的"机"的味道
+ * 农历时间起卦（梅花易数·年月日时起卦法）
+ *
+ * 正统规则（《梅花易数》原书）：
+ *  - 上卦 =（年支序 + 农历月 + 农历日）÷ 8 取余
+ *  - 下卦 =（年支序 + 农历月 + 农历日 + 时辰支序）÷ 8 取余
+ *  - 动爻 =（年支序 + 农历月 + 农历日 + 时辰支序）÷ 6 取余
+ *  - 年支序：子1 丑2 寅3 卯4 辰5 巳6 午7 未8 申9 酉10 戌11 亥12
+ *  - 时辰支序：同上（子=1…亥=12）
+ *
+ * 用户留空时调用：以"点下按钮的这一刻"作为心念一动的瞬间起卦。
  */
 export function castFromTime(now: Date = new Date()): CastResult {
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
-  const day = now.getDate();
-  const hour = now.getHours();
-  const minute = now.getMinutes();
+  const lunar = Lunar.fromDate(now);
 
-  const a = year + month + day;          // 上卦数
-  const b = year + month + day + hour;   // 下卦数
-  const c = a + b + minute;              // 动爻数（加分钟让每分钟都不同）
+  // 年支序（子1…亥12）：从干支"丙午"取地支"午"
+  const yearGanZhi = lunar.getYearInGanZhi();
+  const yearZhi = yearGanZhi.charAt(yearGanZhi.length - 1);
+  const ZHI_ORDER = '子丑寅卯辰巳午未申酉戌亥';
+  const yearNum = ZHI_ORDER.indexOf(yearZhi) + 1;
+
+  // 农历月、日（lunar-javascript 月份/日期已按农历返回，正月=1）
+  const monthNum = Math.abs(lunar.getMonth()); // 闰月取负数，取绝对值
+  const dayNum = lunar.getDay();
+
+  // 时辰支序
+  const timeZhi = lunar.getTimeZhi(); // 如"午"
+  const hourNum = ZHI_ORDER.indexOf(timeZhi) + 1;
+
+  // 三数
+  const a = yearNum + monthNum + dayNum;          // 上卦数
+  const b = a + hourNum;                           // 下卦数
+  const c = b;                                     // 动爻数（年月日时总和）
 
   return computeCast(a, b, c, 'time');
 }

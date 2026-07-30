@@ -155,13 +155,16 @@ export default function Home() {
                   ref={inputRef}
                   type="text"
                   className="input-field text-center"
-                  placeholder="写一组数字，或什么都不写"
+                  placeholder="心里想着要问的事，随手写几个数"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleDivine()}
                 />
                 <p className="text-center text-ink-pale text-xs mt-3 tracking-wider">
-                  一个数 · 两个数 · 三个数 · 或留空
+                  一个数 · 两个数 · 三个数 · 或留空让时间来定
+                </p>
+                <p className="text-center text-ink-pale/70 text-[11px] mt-1.5 tracking-wider font-body">
+                  数要随手写，别挑——随口而出的数最准
                 </p>
               </div>
 
