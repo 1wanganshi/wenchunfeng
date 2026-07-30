@@ -8,6 +8,7 @@ import CoinToss from '@/components/CoinToss';
 import { useDivineSound } from '@/lib/useDivineSound';
 import { trigramsToHexagram } from '@/lib/iching/constants';
 import { plainTiYong } from '@/lib/iching/tiyong';
+import { Lunar } from 'lunar-javascript';
 import type { DivineResponse, DimensionKey } from '@/lib/iching/types';
 
 const DIMENSIONS: { key: DimensionKey; label: string; icon: string }[] = [
@@ -99,15 +100,15 @@ export default function Home() {
     ? (trigramsToHexagram(result.changed.upperTrigram, result.changed.lowerTrigram) as (0 | 1)[])
     : ([0, 0, 0, 0, 0, 0] as (0 | 1)[]);
 
-  // 体用生克的大白话解读
+  // 体用生克的大白话解读（含卦气旺衰）
   const tiyongPlain = result
     ? plainTiYong(
         result.cast.upper,
         result.cast.lower,
         result.cast.movingLine,
-        // 体卦名/用卦名：从卦序反查八卦名
         (['乾','兑','离','震','巽','坎','艮','坤'] as const)[result.tiyong.ti - 1],
-        (['乾','兑','离','震','巽','坎','艮','坤'] as const)[result.tiyong.yong - 1]
+        (['乾','兑','离','震','巽','坎','艮','坤'] as const)[result.tiyong.yong - 1],
+        Math.abs(Lunar.fromDate(new Date()).getMonth())
       )
     : null;
 
@@ -432,6 +433,13 @@ export default function Home() {
                   <p className="font-body text-ink-pale text-xs leading-relaxed text-center">
                     {tiyongPlain.process}
                   </p>
+
+                  {/* 卦气旺衰（时节提示） */}
+                  {tiyongPlain.timing && (
+                    <p className="font-body text-ink-pale/80 text-[11px] leading-relaxed text-center mt-1.5">
+                      {tiyongPlain.timing}
+                    </p>
+                  )}
 
                   {/* 术语小注（可折叠的轻提示） */}
                   <p className="text-center text-ink-pale/60 text-[10px] mt-3 tracking-wider font-body">

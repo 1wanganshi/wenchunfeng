@@ -39,6 +39,67 @@ const ELEMENT_LABEL: Record<FiveElement, string> = {
   earth: '土',
 };
 
+// ============ 卦气旺衰（按起卦月令） ============
+
+// 卦气旺衰：旺=当令最强，相=次强，休=退气，囚=受困，死=最弱
+export type QiStrength = 'wang' | 'xiang' | 'xiu' | 'qiu' | 'si';
+
+const STRENGTH_LABEL: Record<QiStrength, string> = {
+  wang: '旺', xiang: '相', xiu: '休', qiu: '囚', si: '死',
+};
+
+// 每个季节里，各五行的旺衰
+// 依据：春木旺火相水休金囚土死；夏火旺土相木休水囚金死；
+//       秋金旺水相土休火囚木死；冬水旺木相金休土囚火死；
+//       四季月（辰戌丑未）土旺金相火休木囚水死
+const SEASON_QI: Record<string, Record<FiveElement, QiStrength>> = {
+  spring: { wood: 'wang', fire: 'xiang', water: 'xiu', metal: 'qiu', earth: 'si' },
+  summer: { fire: 'wang', earth: 'xiang', wood: 'xiu', water: 'qiu', metal: 'si' },
+  autumn: { metal: 'wang', water: 'xiang', earth: 'xiu', fire: 'qiu', wood: 'si' },
+  winter: { water: 'wang', wood: 'xiang', metal: 'xiu', earth: 'qiu', fire: 'si' },
+  siji:   { earth: 'wang', metal: 'xiang', fire: 'xiu', wood: 'qiu', water: 'si' }, // 辰戌丑未月
+};
+
+/**
+ * 由农历月份得出所属季节（用于卦气旺衰）
+ * 农历：正二三月=春，四五六月=夏，七八九月=秋，十冬腊=冬
+ * 但三、六、九、十二月（辰戌丑未）为四季月，土旺
+ */
+export function seasonFromLunarMonth(lunarMonth: number): keyof typeof SEASON_QI {
+  const m = Math.abs(lunarMonth);
+  if (m === 3 || m === 6 || m === 9 || m === 12) return 'siji'; // 四季月（土旺）
+  if (m >= 1 && m <= 3) return 'spring';
+  if (m >= 4 && m <= 6) return 'summer';
+  if (m >= 7 && m <= 9) return 'autumn';
+  return 'winter'; // 10, 11, 12
+}
+
+/**
+ * 计算某五行在指定月令下的旺衰
+ */
+export function qiStrength(element: FiveElement, lunarMonth: number): {
+  strength: QiStrength;
+  label: string;
+} {
+  const season = seasonFromLunarMonth(lunarMonth);
+  const strength = SEASON_QI[season][element];
+  return { strength, label: STRENGTH_LABEL[strength] };
+}
+
+/**
+ * 旺衰对吉凶的修正系数（供综合判定用）
+ * 旺=+2 相=+1 休=0 囚=-1 死=-2
+ */
+export function qiWeight(strength: QiStrength): number {
+  switch (strength) {
+    case 'wang': return 2;
+    case 'xiang': return 1;
+    case 'xiu': return 0;
+    case 'qiu': return -1;
+    case 'si': return -2;
+  }
+}
+
 // 五行相生：key 生 value（金生水、水生木、木生火、火生土、土生金）
 const SHENG: Record<FiveElement, FiveElement> = {
   metal: 'water',
@@ -181,11 +242,13 @@ export function getTiYongTrigrams(
 
 /**
  * 一站式：给定起卦结果，算出互卦 + 体用卦 + 生克判定 + 互卦对体的生克
+ * @param lunarMonth 可选：起卦时的农历月（用于卦气旺衰修正）
  */
 export function analyzeTiYong(
   upper: TrigramIndex,
   lower: TrigramIndex,
-  movingLine: number
+  movingLine: number,
+  lunarMonth?: number
 ): {
   mutual: { upper: TrigramIndex; lower: TrigramIndex };
   ti: TrigramIndex;
@@ -194,6 +257,8 @@ export function analyzeTiYong(
   yongElement: FiveElement;
   relation: TiYongRelationInfo;
   mutualToTiRelation: TiYongRelationInfo; // 互卦整体对体卦的生克（取上互）
+  tiQi?: { strength: QiStrength; label: string }; // 体卦卦气旺衰
+  yongQi?: { strength: QiStrength; label: string }; // 用卦卦气旺衰
 } {
   const hex = trigramsToHexagram(upper, lower);
   const mutual = computeMutualTrigrams(hex);
@@ -208,7 +273,7 @@ export function analyzeTiYong(
   const mutualElement = TRIGRAM_ELEMENT[mutual.upperMutual];
   const mutualToTiRelation = judgeTiYongRelation(tiElement, mutualElement);
 
-  return {
+  const result: ReturnType<typeof analyzeTiYong> = {
     mutual: { upper: mutual.upperMutual, lower: mutual.lowerMutual },
     ti,
     yong,
@@ -217,6 +282,14 @@ export function analyzeTiYong(
     relation,
     mutualToTiRelation,
   };
+
+  // 卦气旺衰（如果提供了起卦月令）
+  if (lunarMonth !== undefined) {
+    result.tiQi = qiStrength(tiElement, lunarMonth);
+    result.yongQi = qiStrength(yongElement, lunarMonth);
+  }
+
+  return result;
 }
 
 // ============ 大白话文案（给前端直接用） ============
@@ -228,6 +301,8 @@ export interface TiYongPlain {
   detail: string;
   // 中间过程（互卦）一句话
   process: string;
+  // 卦气旺衰提示（体卦在当前时节的强弱）
+  timing?: string;
   // 吉利程度标签（前端染色用）
   mood: 'good' | 'ok' | 'bad';
 }
@@ -249,15 +324,17 @@ const TRIGRAM_NATURE: Record<TrigramIndex, string> = {
  * @param movingLine 动爻
  * @param tiName 体卦名（如"艮"）
  * @param yongName 用卦名（如"离"）
+ * @param lunarMonth 可选：起卦农历月，用于卦气旺衰提示
  */
 export function plainTiYong(
   upper: TrigramIndex,
   lower: TrigramIndex,
   movingLine: number,
   tiName: string,
-  yongName: string
+  yongName: string,
+  lunarMonth?: number
 ): TiYongPlain {
-  const a = analyzeTiYong(upper, lower, movingLine);
+  const a = analyzeTiYong(upper, lower, movingLine, lunarMonth);
   const tiEl = ELEMENT_CN[a.tiElement];
   const yongEl = ELEMENT_CN[a.yongElement];
   const tiNature = TRIGRAM_NATURE[a.ti];
@@ -316,5 +393,23 @@ export function plainTiYong(
     process = `中间过程（互卦${mutualUpperName}(${mutualUpperNature})）可能出点岔子，留个心眼。`;
   }
 
-  return { headline, detail, process, mood };
+  // 卦气旺衰提示（大白话）
+  let timing: string | undefined;
+  if (a.tiQi) {
+    const tiQi = a.tiQi.strength;
+    const tiElCN = ELEMENT_CN[a.tiElement];
+    if (tiQi === 'wang') {
+      timing = `眼下这个时节，你自身的${tiElCN}气正旺——底子足，扛得住事。`;
+    } else if (tiQi === 'xiang') {
+      timing = `这个时节你的${tiElCN}气也不弱——虽不是最旺，但够用了。`;
+    } else if (tiQi === 'xiu') {
+      timing = `这个时节你的${tiElCN}气平平——不算差，但别硬撑。`;
+    } else if (tiQi === 'qiu') {
+      timing = `这个时节你的${tiElCN}气偏弱——有点吃力，凡事留三分力。`;
+    } else {
+      timing = `这个时节你的${tiElCN}气最弱——别硬顶，守比攻稳。`;
+    }
+  }
+
+  return { headline, detail, process, timing, mood };
 }

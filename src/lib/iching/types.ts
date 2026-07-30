@@ -49,6 +49,8 @@ export interface TiYongAnalysis {
   relationFortune: 'great-good' | 'good' | 'neutral' | 'bad'; // 吉凶档
   relationFortuneLabel: string;   // "大吉" / "小吉" / "吉" / "耗" / "大凶"
   relationAdvice: string;         // 断语
+  tiQiLabel?: string;             // 体卦卦气旺衰（如"旺""相""休""囚""死"）
+  yongQiLabel?: string;           // 用卦卦气旺衰
 }
 
 // 一个维度的解读

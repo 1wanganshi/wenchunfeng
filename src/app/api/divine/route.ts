@@ -4,6 +4,7 @@ import { getHexagram } from '@/lib/iching/hexagrams';
 import { judgeYao } from '@/lib/iching/yao_fortune';
 import { YAO_PLAIN } from '@/lib/iching/yao_plain';
 import { analyzeTiYong } from '@/lib/iching/tiyong';
+import { Lunar } from 'lunar-javascript';
 import type { DivineResponse, YaoFortune, TiYongAnalysis } from '@/lib/iching/types';
 
 const FORTUNE_LABEL: Record<YaoFortune, string> = {
@@ -59,7 +60,9 @@ export async function POST(request: NextRequest) {
     movingYaoFortune: fortune,
     movingYaoAdvice: FORTUNE_ADVICE[fortune],
     tiyong: ((): TiYongAnalysis => {
-      const a = analyzeTiYong(cast.upper, cast.lower, cast.movingLine);
+      // 当前农历月（用于卦气旺衰）
+      const lunarMonth = Math.abs(Lunar.fromDate(new Date()).getMonth());
+      const a = analyzeTiYong(cast.upper, cast.lower, cast.movingLine, lunarMonth);
       return {
         mutual: a.mutual,
         ti: a.ti,
@@ -71,6 +74,8 @@ export async function POST(request: NextRequest) {
         relationFortune: a.relation.fortune,
         relationFortuneLabel: a.relation.fortuneLabel,
         relationAdvice: a.relation.advice,
+        tiQiLabel: a.tiQi?.label,
+        yongQiLabel: a.yongQi?.label,
       };
     })(),
   };
